@@ -194,8 +194,95 @@ if(isset($_POST['update_now'])){
             $select_tutor->execute([$fetch_content['tutor_id']]);
             $fetch_tutor = $select_tutor->fetch(PDO::FETCH_ASSOC);
    ?>
+<?php 
+
+// Get the current video
+$select_content = $conn->prepare("SELECT * FROM `content` WHERE id = ? AND status = ?");
+$select_content->execute([$get_id, 'active']);
+if($select_content->rowCount() > 0){
+   $fetch_content = $select_content->fetch(PDO::FETCH_ASSOC);
+   $content_id = $fetch_content['id'];
+   $playlist_id = $fetch_content['playlist_id'];
+
+   // Get the next video in the playlist
+   $select_next = $conn->prepare("SELECT id FROM `content` WHERE playlist_id = ? AND id > ? LIMIT 1");
+   $select_next->execute([$playlist_id, $content_id]);
+   if($select_next->rowCount() > 0){
+      $fetch_next = $select_next->fetch(PDO::FETCH_ASSOC);
+      $next_video_id = $fetch_next['id'];
+   } else {
+      // If no next video, loop back to the first video in the playlist
+      $select_first = $conn->prepare("SELECT id FROM `content` WHERE playlist_id = ? ORDER BY id ASC LIMIT 1");
+      $select_first->execute([$playlist_id]);
+      $fetch_first = $select_first->fetch(PDO::FETCH_ASSOC);
+      $next_video_id = $fetch_first['id'];
+   }
+}
+
+?>
+
+
    <div class="video-details">
-      <video src="uploaded_files/<?= $fetch_content['video']; ?>" class="video" poster="uploaded_files/<?= $fetch_content['thumb']; ?>" controls autoplay></video>
+   <div class="video-container" style="position: relative;">
+         <video 
+            src="uploaded_files/<?= $fetch_content['video']; ?>" 
+            class="video" 
+            poster="uploaded_files/<?= $fetch_content['thumb']; ?>" 
+            autoplay playsinline 
+            disablePictureInPicture 
+            controlslist="nodownload nofullscreen noremoteplayback" 
+            oncontextmenu="return false;"
+            id="main-video"
+         ></video>
+
+         <!-- Play/Pause Button -->
+         <button id="playPauseBtn" style="position:absolute; bottom:20px; left:20px; background-color:#333; color:white; padding:10px; border:none;">
+            Pause
+         </button>
+
+         <!-- Next Video Button -->
+         <a href="watch_video.php?get_id=<?= $next_video_id; ?>" id="next-btn" style="display:none; position:absolute; bottom:20px; right:20px; padding:10px 20px; background:#333; color:#fff; border-radius:5px; text-decoration:none;">
+            Next Video
+         </a>
+      </div>
+
+      <script>
+         const video = document.getElementById('main-video');
+         const playPauseBtn = document.getElementById('playPauseBtn');
+         const nextBtn = document.getElementById('next-btn');
+
+         // Ensure the video is autoplayed when the page loads
+         video.play(); 
+
+         // Toggle play/pause functionality
+         playPauseBtn.addEventListener('click', () => {
+            if (video.paused) {
+               video.play();
+               playPauseBtn.textContent = 'Pause';
+            } else {
+               video.pause();
+               playPauseBtn.textContent = 'Play';
+            }
+         });
+
+         // Show the "Next Video" button when the current video ends
+         video.addEventListener('ended', () => {
+            nextBtn.style.display = 'block'; // Show the next button
+         });
+      </script>
+
+
+<!-- <script>
+   const video = document.getElementById('main-video');
+   const nextBtn = document.getElementById('next-btn');
+
+   nextBtn.style.display = 'none';  // Hide by default
+
+   video.addEventListener('ended', () => {
+      nextBtn.style.display = 'block';  // Show the "Next Video" button when video ends
+   });
+</script> -->
+
       <h3 class="title"><?= $fetch_content['title']; ?></h3>
       <div class="info">
          <p><i class="fas fa-calendar"></i><span><?= $fetch_content['date']; ?></span></p>
