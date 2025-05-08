@@ -147,25 +147,57 @@ if(isset($_POST['save_list'])){
 
    <div class="box-container">
 
-      <?php
-         $select_content = $conn->prepare("SELECT * FROM `content` WHERE playlist_id = ? AND status = ? ORDER BY date DESC");
-         $select_content->execute([$get_id, 'active']);
-         if($select_content->rowCount() > 0){
-            while($fetch_content = $select_content->fetch(PDO::FETCH_ASSOC)){  
-      ?>
-      <a href="watch_video.php?get_id=<?= $fetch_content['id']; ?>" class="box">
-         <i class="fas fa-play"></i>
-         <img src="uploaded_files/<?= $fetch_content['thumb']; ?>" alt="">
-         <h3><?= $fetch_content['title']; ?></h3>
-      </a>
-      <?php
-            }
-         }else{
-            echo '<p class="empty">no videos added yet!</p>';
-         }
-      ?>
+<?php
+$select_content = $conn->prepare("SELECT * FROM `content` WHERE playlist_id = ? AND status = ? ORDER BY date ASC");
+$select_content->execute([$get_id, 'active']);
+if($select_content->rowCount() > 0){
+   $index = 0;
+   while($fetch_content = $select_content->fetch(PDO::FETCH_ASSOC)){  
+?>
+   <a href="watch_video.php?get_id=<?= $fetch_content['id']; ?>" 
+      class="box video-box" 
+      id="video-<?= $index; ?>" 
+      data-index="<?= $index; ?>" 
+      style="<?= ($index != 0) ? 'pointer-events: none; opacity: 0.5;' : ''; ?>">
+      <i class="fas fa-play"></i>
+      <img src="uploaded_files/<?= $fetch_content['thumb']; ?>" alt="">
+      <h3><?= $fetch_content['title']; ?></h3>
+   </a>
+<?php
+      $index++;
+   }
+}else{
+   echo '<p class="empty">no videos added yet!</p>';
+}
+?>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+   const playlistId = "<?= $get_id; ?>";
+   const totalVideos = document.querySelectorAll('.video-box').length;
 
-   </div>
+   // Unlock previously completed videos
+   for (let i = 0; i <  os; i++) {
+      if (localStorage.getItem(`playlist_${playlistId}_video_${i}_completed`)) {
+         const nextVideo = document.getElementById(`video-${i + 1}`);
+         if (nextVideo) {
+            nextVideo.style.pointerEvents = 'auto';
+            nextVideo.style.opacity = '1';
+         }
+      }
+   }
+
+   // When clicking a video, mark it completed
+   const videoBoxes = document.querySelectorAll('.video-box');
+   videoBoxes.forEach(box => {
+      box.addEventListener('click', function () {
+         const index = this.getAttribute('data-index');
+         localStorage.setItem(`playlist_${playlistId}_video_${index}_completed`, 'true');
+      });
+   });
+});
+</script>
+
 
 </section>
 
